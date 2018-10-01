@@ -55,6 +55,7 @@ void MainWindow::setupControls()
     WatchTxt = new QTextEdit;
     WatchTxt->setStatusTip("formatted text (in txt files)");
     WatchTxt->setToolTip("in txt file");
+    WatchTxt->setEnabled(false);
     //Q_ASSERT(connect(WatchTxt, SIGNAL(textChanged()), this, SLOT(WatchChanged())));
 
     //линия
@@ -69,13 +70,15 @@ void MainWindow::setupControls()
     rdbutCP->setStatusTip("encoding");
     rdbutCP->setToolTip("encoding");
     rdbutCP->setChecked(true);
-    Q_ASSERT(connect(rdbutCP, SIGNAL(clicked()), this, SLOT(WatchChanged())));
+    Q_ASSERT(connect(rdbutCP, SIGNAL(toggled(bool)), this, SLOT(WatchChanged())));
 
     rdbutUTF = new QRadioButton;
     rdbutUTF->setText("utf-8");
     rdbutUTF->setStatusTip("encoding");
     rdbutUTF->setToolTip("encoding");
-    Q_ASSERT(connect(rdbutUTF, SIGNAL(clicked()), this, SLOT(WatchChanged())));
+    rdbutUTF->setChecked(false);
+    Q_ASSERT(connect(rdbutUTF, SIGNAL(toggled(bool)), this, SLOT(WatchChanged())));
+
 
     chkbxcl = new QCheckBox;
     chkbxcl->setText("полужирный");
@@ -99,7 +102,7 @@ void MainWindow::setupControls()
     combox->addItem("green");
     combox->addItem("blue");
     combox->addItem("red");
-    combox->addItem("xxx");
+    combox->addItem("gray");
     Q_ASSERT(connect(combox, SIGNAL(currentIndexChanged(QString)), this, SLOT(WatchChanged())));
 
 
@@ -111,15 +114,38 @@ void MainWindow::setupControls()
 
 
     //сепаратор
-    QSplitter *separator = new QSplitter;
-    separator->setOrientation(Qt::Vertical);
-    separator->addWidget(rdbutCP);
-    separator->addWidget(rdbutUTF);
-    separator->addWidget(chkbxcl);
-    separator->addWidget(chkbxit);
-    separator->addWidget(chkbxun);
-    separator->addWidget(combox);
-    separator->addWidget(but);
+    QVBoxLayout *separator1 = new QVBoxLayout;
+    separator1->addWidget(rdbutCP);
+    separator1->addWidget(rdbutUTF);
+
+    QVBoxLayout *separator2 = new QVBoxLayout;
+    separator2->addWidget(chkbxcl);
+    separator2->addWidget(chkbxit);
+    separator2->addWidget(chkbxun);
+    separator2->addWidget(combox);
+
+    QVBoxLayout *separator3 = new QVBoxLayout;
+    separator3->addWidget(but);
+
+
+    QGroupBox *grboxEn = new QGroupBox;
+    grboxEn->setTitle("encoding");
+    grboxEn->setLayout(separator1);
+
+    QGroupBox *grboxSt = new QGroupBox;
+    grboxSt->setTitle("style");
+    grboxSt->setLayout(separator2);
+
+    QGroupBox *grboxBut = new QGroupBox;
+    grboxBut->setTitle("default");
+    grboxBut->setLayout(separator3);
+
+
+    //чтобы выводилось всё в одной ячейке
+    QVBoxLayout *combGrbx = new QVBoxLayout;
+    combGrbx->addWidget(grboxEn);
+    combGrbx->addWidget(grboxSt);
+    combGrbx->addWidget(grboxBut);
     // ///
 
 
@@ -141,8 +167,7 @@ void MainWindow::setupControls()
     lay->addWidget(filename, 1, 1);
     lay->addWidget(WatchTxt, 1, 2);
     lay->addWidget(line, 1, 3);
-    lay->addWidget(separator, 1, 4);  //кнопки управления
-
+    lay->addLayout(combGrbx, 1, 4);  //кнопки управления
 
     w->setLayout(lay);
     setCentralWidget(w);   // "накладываем наш виджет на 'mainwidget' "
@@ -219,6 +244,7 @@ void MainWindow::resetWatch(QString filename)
     {
         QMessageBox::information(this, "Информация", "Файл заблокирован!", QMessageBox::Ok);
         WatchTxt->clear();
+        WatchTxt->setEnabled(false);
         return;
     }
 
@@ -228,6 +254,7 @@ void MainWindow::resetWatch(QString filename)
     {
         QMessageBox::information(this, "Информация", "Недопустимое расширение", QMessageBox::Ok);
         WatchTxt->clear();
+        WatchTxt->setEnabled(false);
         return;
     }
 
@@ -239,10 +266,21 @@ void MainWindow::resetWatch(QString filename)
     {
         QMessageBox::information(this, "Информация", "Файл заблокирован!", QMessageBox::Ok);
         WatchTxt->clear();
+        WatchTxt->setEnabled(false);
         return;
     }
 
     WatchTxt->clear();
+    WatchTxt->setEnabled(true);
+
+    //корректный вывод на экран
+    if (rdbutCP->isChecked()) {
+        inStream.setCodec(QTextCodec::codecForName("CP1251"));
+    }
+
+    if (rdbutUTF->isChecked()) {
+        inStream.setCodec(QTextCodec::codecForName("utf8"));
+    }
 
     WatchTxt->insertPlainText(inStream.readAll());
 
@@ -263,9 +301,6 @@ void MainWindow::About()
 void MainWindow::ToDefault()
 {
     rdbutCP->setChecked(true);
-    //QFont font;
-    //font.set);
-    //font.setFamily(font.defaultFamily());
     WatchTxt->setFont(QFont("Times", 8));
     WatchTxt->setFontItalic(false);
     WatchTxt->setFontUnderline(false);
@@ -314,11 +349,17 @@ void MainWindow::SaveAs()
     else
     {
         QTextStream stream(&outFile);
-        // stream.setCodec(QTextCodec::codecForName("CP1251"));
 
         QString strtxt = "";
 
-        //сохранение в файл с помощью манипуляторов (.toUTF8)  вызов функции
+        if (rdbutCP->isChecked()){
+            stream.setCodec(QTextCodec::codecForName("CP1251"));
+        }
+
+        if (rdbutUTF->isChecked()) {
+            stream.setCodec(QTextCodec::codecForName("utf8"));
+        }
+
         strtxt = WatchTxt->toPlainText();
 
         stream << strtxt;
@@ -330,15 +371,15 @@ void MainWindow::SaveAs()
 //вызов resetWatch
 void MainWindow::WatchChanged()
 {
-    //промежуточная проверка, чтобы не сигнализировать на каждое нажатие
-    //QFile dir(fileDirNew);
-    //if (!dir.exists())
-    //   return;
+    /* промежуточная проверка, чтобы не сигнализировать на каждое нажатие
+    QFile dir(fileDirNew);
+    if (!dir.exists())
+       return;
 
-    //dir.close();
+    dir.close();
 
-    //перерисовываем
-    //resetWatch(fileDirNew);
+    перерисовываем
+    resetWatch(fileDirNew); */
 
     //обновляем стиль
     txtStyleChanged();
@@ -347,7 +388,7 @@ void MainWindow::WatchChanged()
 void MainWindow::txtStyleChanged()
 {
     if (chkbxcl->isChecked())
-        WatchTxt->setFont(QFont("Times", 10));
+        WatchTxt->setFont(QFont("System", 8));
     else
     {
        WatchTxt->setFont(QFont("Times", 8));
@@ -366,43 +407,48 @@ void MainWindow::txtStyleChanged()
         WatchTxt->setFontUnderline(false);
 
 
+    QColor color;
+    if (!combox->currentText().compare("black")) {
+        color.setRgb(0,0,0);  //черный
+    }
+    else if (!combox->currentText().compare("green")) {
+            color.setRgb(0,100,0);
+    }
+    else if (!combox->currentText().compare("blue")) {
+            color.setRgb(0,0,100);
+    }
+    else if (!combox->currentText().compare("red")) {
+        color.setRgb(100,0,0);
+    }
+    else if (!combox->currentText().compare("gray"))
+        color.setRgb(100,100,100);
+
+
+    WatchTxt->setTextColor(color);
+
+
+    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+    //перекодировка
+    QString str("");
+
+    if (rdbutCP->isChecked())
+    {
+         //QTextCodec *codecCP;
+         //codecCP->setCodecForLocale("CP1251");
+         // = QTextCodec::codecForName("CP1251");
+         QByteArray qbCP = QString(WatchTxt->toPlainText()).toLocal8Bit();
+         //str = codecCP->toUnicode(qbCP);
+         WatchTxt->clear();
+         WatchTxt->insertPlainText(qbCP);
+    }
+
     if (rdbutUTF->isChecked())
     {
-         QByteArray qbCP = QString(WatchTxt->toPlainText()).toLocal8Bit();
-         WatchTxt->clear();
-         WatchTxt->insertPlainText(qbCP.constData());
-    }
-    else if (rdbutCP->isChecked())
-    {
-        QByteArray qbUTF = QString(WatchTxt->toPlainText()).toUtf8();
+        //QTextCodec *codecUtf = QTextCodec::codecForName("utf8");
+        QString str(WatchTxt->toPlainText());
+        QByteArray qbUTF = str.toUtf8();
+        //str = codecUtf->toUnicode(qbUTF);
         WatchTxt->clear();
         WatchTxt->insertPlainText(qbUTF.constData());
     }
-
-    if (!combox->currentText().compare("black"))
-    {
-        QPalette qplt;
-        //qplt.setColor();
-
-    }
-    //else if
-
-
-    //WatchTxt->toPlainText();
-    //WatchTxt->insertPlainText(str);
-    //WatchTxt->insertPlainText(str2);
-    //str2.insert(str.unicode());
-    //WatchTxt->
-    //if (rdbutCP->hasFocus())
-    //    inStream.setCodec("cp1251");
-    //else if (rdbutUTF->hasFocus())
-      //      inStream.setCodec("utf-8");
-    //WatchTxt->setTextColor();
-    //WatchTxt->setStyle();
-    //WatchTxt->setStyleSheet()
-
-    //WatchTxt->setFont()
-    //QString str;
-    //str.toUtf8()
-
 }

@@ -36,6 +36,7 @@
 #include <QState>
 #include <QFont>
 #include <QColor>
+#include <QGroupBox>
 
 
 namespace Ui {
