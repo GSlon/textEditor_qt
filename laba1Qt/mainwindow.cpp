@@ -70,14 +70,14 @@ void MainWindow::setupControls()
     rdbutCP->setStatusTip("encoding");
     rdbutCP->setToolTip("encoding");
     rdbutCP->setChecked(true);
-    Q_ASSERT(connect(rdbutCP, SIGNAL(toggled(bool)), this, SLOT(WatchChanged())));
+    Q_ASSERT(connect(rdbutCP, SIGNAL(toggled(bool)), this, SLOT(CodirChanged())));
 
     rdbutUTF = new QRadioButton;
     rdbutUTF->setText("utf-8");
     rdbutUTF->setStatusTip("encoding");
     rdbutUTF->setToolTip("encoding");
     rdbutUTF->setChecked(false);
-    Q_ASSERT(connect(rdbutUTF, SIGNAL(toggled(bool)), this, SLOT(WatchChanged())));
+    Q_ASSERT(connect(rdbutUTF, SIGNAL(toggled(bool)), this, SLOT(CodirChanged())));
 
 
     chkbxcl = new QCheckBox;
@@ -426,7 +426,14 @@ void MainWindow::txtStyleChanged()
 
     WatchTxt->setTextColor(color);
 
+    //перерисовываем весь Watch
+    QString str = WatchTxt->toPlainText();
+    WatchTxt->clear();
+    WatchTxt->setPlainText(str);
+}
 
+void MainWindow::CodirChanged()
+{
     //перекодировка
     // QMessageBox::information(this,"", QCoreApplication::applicationDirPath());  //путь до скомпилированного файла
     QFile file(fileDirNew);

@@ -78,6 +78,7 @@ private slots:
     void ToDefault();
     void dirClicked(const QModelIndex& index);
     void WatchChanged();
+    void CodirChanged();
 
 
 };
