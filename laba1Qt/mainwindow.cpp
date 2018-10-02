@@ -8,7 +8,7 @@ MainWindow::MainWindow(QWidget *parent) :
     ui->setupUi(this);
 
     // пройтись через this по функциям (чтобы всё не лежало в конструкторе)
-    this->setWindowTitle("Лаба 1");
+    this->setWindowTitle("Laba 1");
     this->setupControls();
     this->initDirectoriesTree();
     // this->setWindowState((windowState() & ~(Qt::WindowMinimized | Qt::WindowFullScreen)) | Qt::WindowMaximized);
@@ -81,12 +81,12 @@ void MainWindow::setupControls()
 
 
     chkbxcl = new QCheckBox;
-    chkbxcl->setText("полужирный");
+    chkbxcl->setText("bold");
     chkbxcl->setStatusTip("font");
     Q_ASSERT(connect(chkbxcl, SIGNAL(toggled(bool)), this, SLOT(WatchChanged())));
 
     chkbxit = new QCheckBox;
-    chkbxit->setText("курсив");
+    chkbxit->setText("italics");
     chkbxit->setStatusTip("font");
     Q_ASSERT(connect(chkbxit, SIGNAL(toggled(bool)), this, SLOT(WatchChanged())));
 
@@ -208,7 +208,7 @@ void MainWindow::initDirectoriesTree()
     model = new QFileSystemModel;
     model->setRootPath("");
     model->iconProvider()->setOptions(QFileIconProvider::DontUseCustomDirectoryIcons);
-    model->setFilter(QDir::AllDirs);  //фильтр
+    model->setFilter(QDir::AllDirs | QDir::NoDotAndDotDot);  //фильтр
 
     dirname->setModel(model);
     dirname->setEditTriggers(QAbstractItemView::SelectedClicked | QAbstractItemView::DoubleClicked);
@@ -221,7 +221,7 @@ void MainWindow::resetFilesList(QString directoryName)
 
     if (!directory.exists())
     {
-        QMessageBox::information(this, "Информация", "Файл заблокирован!", QMessageBox::Ok);
+        QMessageBox::information(this, "information", "Файл заблокирован!", QMessageBox::Ok);
         // filename->clear();
         return;
     }
@@ -242,7 +242,7 @@ void MainWindow::resetWatch(QString filename)
     //проверка
     if (!inFile.exists())
     {
-        QMessageBox::information(this, "Информация", "Файл заблокирован!", QMessageBox::Ok);
+        QMessageBox::information(this, "information", "Файл заблокирован!", QMessageBox::Ok);
         WatchTxt->clear();
         WatchTxt->setEnabled(false);
         return;
@@ -252,7 +252,7 @@ void MainWindow::resetWatch(QString filename)
     if ((filename.indexOf(".txt") == -1) &&
             (filename.indexOf(".ini") == -1))
     {
-        QMessageBox::information(this, "Информация", "Недопустимое расширение", QMessageBox::Ok);
+        QMessageBox::information(this, "information", "Недопустимое расширение", QMessageBox::Ok);
         WatchTxt->clear();
         WatchTxt->setEnabled(false);
         return;
@@ -264,7 +264,7 @@ void MainWindow::resetWatch(QString filename)
 
     if (inStream.status() != QTextStream::Ok)
     {
-        QMessageBox::information(this, "Информация", "Файл заблокирован!", QMessageBox::Ok);
+        QMessageBox::information(this, "information", "Файл заблокирован!", QMessageBox::Ok);
         WatchTxt->clear();
         WatchTxt->setEnabled(false);
         return;
@@ -295,7 +295,7 @@ void MainWindow::quitProgram()
 
 void MainWindow::About()
 {
-    QMessageBox::information(this, "About program:", "Прохватилов С. С. , М80-213Б-17", QMessageBox::Ok);
+    QMessageBox::information(this, "About program", "Прохватилов С. С. , М80-213Б-17", QMessageBox::Ok);
 }
 
 void MainWindow::ToDefault()
@@ -316,7 +316,7 @@ void MainWindow::dirClicked(const QModelIndex& index)
 {
     if (!index.isValid())
     {
-        QMessageBox::information(this, "Информация", "Файл заблокирован!", QMessageBox::Ok);
+        QMessageBox::information(this, "information", "Файл заблокирован!", QMessageBox::Ok);
         return;
     }
 
@@ -341,7 +341,7 @@ void MainWindow::SaveAs()
     if (!outFile.open(QIODevice::WriteOnly))
     {
         QMessageBox::information(this,
-                                 "ошибка"
+                                 "error"
                                  ,"Ошибка сохранения файла"
                                  ,QMessageBox::Ok
                                  );
@@ -427,28 +427,22 @@ void MainWindow::txtStyleChanged()
     WatchTxt->setTextColor(color);
 
 
-    // !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
     //перекодировка
-    QString str("");
+    // QMessageBox::information(this,"", QCoreApplication::applicationDirPath());  //путь до скомпилированного файла
+    QFile file(fileDirNew);
+    file.open(QIODevice::ReadOnly);
+    QTextStream  instream(&file);
 
-    if (rdbutCP->isChecked())
-    {
-         //QTextCodec *codecCP;
-         //codecCP->setCodecForLocale("CP1251");
-         // = QTextCodec::codecForName("CP1251");
-         QByteArray qbCP = QString(WatchTxt->toPlainText()).toLocal8Bit();
-         //str = codecCP->toUnicode(qbCP);
-         WatchTxt->clear();
-         WatchTxt->insertPlainText(qbCP);
+
+    // раскодируем в новой
+    if (rdbutCP->isChecked()) {
+        instream.setCodec(QTextCodec::codecForName("CP1251"));
     }
 
-    if (rdbutUTF->isChecked())
-    {
-        //QTextCodec *codecUtf = QTextCodec::codecForName("utf8");
-        QString str(WatchTxt->toPlainText());
-        QByteArray qbUTF = str.toUtf8();
-        //str = codecUtf->toUnicode(qbUTF);
-        WatchTxt->clear();
-        WatchTxt->insertPlainText(qbUTF.constData());
+    if (rdbutUTF->isChecked()) {
+        instream.setCodec(QTextCodec::codecForName("utf8"));
     }
+
+    WatchTxt->clear();
+    WatchTxt->insertPlainText(instream.readAll());
 }
